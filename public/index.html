@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="hy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Book Tracker</title>
+
+  <!-- Փոքրիկ ներկառուցված CSS -->
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background:#f9fafb; }
+    h1   { margin-bottom: 1rem; }
+    form { margin-bottom: 2rem; display:flex; gap:.5rem; flex-wrap:wrap; }
+    input[type=text]  { padding:.5rem .75rem; flex:1 1 200px; border:1px solid #ccc; border-radius:4px; }
+    button            { padding:.55rem 1.2rem; border:none; background:#2563eb; color:#fff;
+                        border-radius:4px; cursor:pointer; }
+    button:disabled   { background:#9ca3af; cursor:not-allowed; }
+    ul    { list-style:none; padding:0; }
+    li    { background:#fff; margin-bottom:.5rem; padding:.75rem 1rem; border-radius:6px;
+            border:1px solid #e5e7eb; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    a     { color:#2563eb; word-break:break-all; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <h1>📚 Book Tracker</h1>
+
+  <!-- Form new book -->
+  <form id="bookForm">
+    <input id="title"    type="text" placeholder="Title"     required />
+    <input id="bookurl"  type="text" placeholder="URL"       required />
+    <button id="saveBtn" type="submit">Add</button>
+  </form>
+
+  <!-- List -->
+  <ul id="bookList"></ul>
+
+  <!-- Ուղիղ JS -->
+  <script>
+    const listEl   = document.getElementById('bookList');
+    const formEl   = document.getElementById('bookForm');
+    const saveBtn  = document.getElementById('saveBtn');
+
+    // Render helper
+    function renderBooks(books){
+      listEl.innerHTML = '';
+      books.forEach(b=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${b.title}</strong><br><a href="${b.bookurl}" target="_blank">${b.bookurl}</a>`;
+        listEl.appendChild(li);
+      });
+    }
+
+    // Initial fetch
+    async function loadBooks(){
+      try{
+        const res   = await fetch('/api/books');
+        const books = await res.json();
+        renderBooks(books);
+      }catch(err){
+        console.error('Cannot load books', err);
+      }
+    }
+    loadBooks();
+
+    // Form submit
+    formEl.addEventListener('submit', async e=>{
+      e.preventDefault();
+      saveBtn.disabled = true;
+
+      const payload = {
+        title:   document.getElementById('title').value.trim(),
+        bookurl: document.getElementById('bookurl').value.trim()
+      };
+
+      try{
+        const res = await fetch('/api/books',{
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if(!res.ok) throw new Error('Request failed');
+        // append new book quickly
+        const newBook = await res.json();
+        renderBooks([...Array.from(listEl.children).map(li=>({
+          title:li.querySelector('strong').textContent,
+          bookurl:li.querySelector('a').href
+        })), newBook]);
+        formEl.reset();
+      }catch(err){
+        alert('Error saving book ❌');
+        console.error(err);
+      }finally{
+        saveBtn.disabled=false;
+      }
+    });
+  </script>
+</body>
+</html>
