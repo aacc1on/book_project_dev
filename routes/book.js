@@ -9,7 +9,7 @@ router.post('/', async (req, res) => {
     const { title, bookurl } = req.body;
     try{
         const result = await Book.create({ title, bookurl });
-        result.save();
+         await result.save();
         res.status(201).json(result);
     }catch (error) {
         console.error('Error creating book:', error);
